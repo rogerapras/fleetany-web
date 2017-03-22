@@ -19,6 +19,9 @@ class CreateCompaniesTable extends Migration {
 			$table->string('name');
 			$table->string('measure_units')->nullable();
 			$table->string('api_token');
+			$table->decimal('limit_temperature');
+			$table->decimal('ideal_pressure');
+			$table->decimal('delta_pressure');
 			$table->timestamps();
 			$table->softDeletes();
 			$table->engine = 'InnoDB';

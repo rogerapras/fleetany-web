@@ -1,4 +1,4 @@
-<div class="mdl-color--white mdl-shadow--2dp mdl-cell mdl-cell--6-col mdl-grid">
+<div id="vehicleMap{{$vehicle->id}}" class="@if(!empty($tireData['isTireSensorOldData'])) mdl-color--grey-400 @else mdl-color--white @endif mdl-shadow--2dp mdl-cell mdl-cell--6-col mdl-grid">
 	<a href="{{url('/')}}/vehicle/{{$vehicle->id}}/edit">
     	<div class="mdl-button mdl-button--colored">
             {{Lang::get("general.fleet_number")}}: {{$vehicle->fleet}} - {{Lang::get("general.number")}}: {{$vehicle->number}}
@@ -8,22 +8,51 @@
 	<input type="hidden" id="updateDatetime" value='{{date("Y-m-d H:i:s")}}' />
 	
 	<div class="mdl-card__actions mdl-card--border"></div>
-    <div class="mdl-card__supporting-text" @if(empty($pageActive) || $pageActive != 'fleet') style="height: 900px;" @else id="vehicle{{$vehicle->id}}" @endif>
-    	<div class="mdl-color-text--grey tires-front">
-    		<span>(</span>
-    	</div>
-    	
+    <div class="mdl-card__supporting-text" @if(empty($pageActive) || $pageActive != 'fleet')  @else id="vehicle{{$vehicle->id}}" @endif>
+	
 	@if(!empty(str_split($modelMap)))
 		{{--*/ 
 			$col = 0; 
 			$final = false;
+			$modelMapTractor = substr($modelMap, 0, 16);
+			$modelMapTrailer = substr($modelMap, 33);
+			$lastTireModelMap = $lastTiremodelMapTractor = strripos($modelMapTractor,'1') + 1;
+			$lastTiremodelMapTrailer = strripos($modelMap,'1') + 1;
 		/*--}}
+
+		@if(strpos($modelMapTractor, '1') !== false)
+        	<div class="mdl-color-text--grey tires-front">
+        		<span>(</span>
+        	</div>
+    	@endif
 		
 		@foreach(str_split($modelMap) as $key => $value)
 
-			@if((strripos($modelMap,'1') > $key || $col != 4) && !$final)
+			@if($key == 16 && strpos($modelMapTrailer, '1') !== false)
+				@if(strpos($modelMapTractor, '1') !== false)
+        	    	<div class="mdl-color-text--grey tires-back">
+        	    		<span>]</span>
+        	    	</div>
+    	    	@endif
+    	    	<div class="mdl-color-text--grey tires-back">
+    	    		<span>[</span>
+    	    	</div>
+    			{{--*/ 
+    				$final = false; 
+    				$lastTireModelMap = $lastTiremodelMapTrailer;
+				/*--}}
+			@endif
 			
-				@if(strripos($modelMap,'1') <= $key && $col == 4)
+			@if(($key > 15 && $key < 32) || 
+					($key < 16 && strpos($modelMapTractor, '1') === false) ||
+					($key > 31 && strpos($modelMapTrailer, '1') === false)
+			)
+    			{{--*/ continue; /*--}}
+			@endif
+
+			@if(($lastTireModelMap > $key || $col != 4) && !$final)
+				
+				@if($lastTireModelMap <= $key && $col == 4)
 					{{--*/ 
 						$final = true;
 						break;
@@ -53,7 +82,7 @@
 					
     		    	@if($value == 1)
     		    		<div class="@if(strlen($key + 1) > 1) vehicle-map-tire-number @else vehicle-map-tire-number-simple @endif">{{$key + 1}}</div>
-                        <div @if(empty($tireData[$key + 1]->pressure) && empty($tireData[$key + 1]->temperature)) style="display:none" @endif class="mdl-tooltip" id="tireData{{$key + 1}}_{{$vehicle->id}}" @if(!empty($pageActive) && $pageActive == 'vehicleShow') for="pos{{$key + 1}}" @else for="pos{{$key + 1}}_{{$vehicle->id}}" @endif>
+                        <div @if(empty($tireData[$key + 1]->pressure) && empty($tireData[$key + 1]->temperature)) style="display:none" @endif class="mdl-tooltip mdl-tooltip-blurry" id="tireData{{$key + 1}}_{{$vehicle->id}}" @if(!empty($pageActive) && $pageActive == 'vehicleShow') for="pos{{$key + 1}}" @else for="pos{{$key + 1}}_{{$vehicle->id}}" @endif>
                         @if(!empty($tireData[$key + 1]->pressure) || !empty($tireData[$key + 1]->temperature))
                         {{Lang::get("general.pressure")}}: {{$tireData[$key + 1]->pressure}} - {{Lang::get("general.temperature")}}: {{$tireData[$key + 1]->temperature}}
                         @endif
@@ -78,11 +107,17 @@
     		<span>]</span>
     	</div>
     	
-        <div @if(empty($gpsData->latitude) && empty($gpsData->longitude)) style="display:none" @endif class="mdl-tooltip" id="gpsData{{$vehicle->id}}" for="vehicle{{$vehicle->id}}">
+        <div @if(empty($gpsData->latitude) && empty($gpsData->longitude)) style="display:none" @endif class="mdl-tooltip mdl-tooltip-blurry" id="gpsData{{$vehicle->id}}" for="vehicle{{$vehicle->id}}">
         @if(!empty($gpsData->latitude) || !empty($gpsData->longitude))
         {{Lang::get("general.latitude")}}: {{$gpsData->latitude}} - {{Lang::get("general.longitude")}}: {{$gpsData->longitude}}
         @endif
         </div>
-        
+        <span id="lastDatetimeDataMessage{{$vehicle->id}}" @if(!empty($tireData['isTireSensorOldData'])) style='color: #F00' @endif>
+        	@if(!empty($tireData['lastDatetimeData']))
+        	{{Lang::get("general.LastData")}}: {{$tireData['lastDatetimeData']}}
+        	@elseif(isset($tireData['lastDatetimeData']))
+        	{{Lang::get("general.NoDataWasRecorded")}}
+        	@endif
+        </span>
     </div>
 </div>

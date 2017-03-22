@@ -84,13 +84,22 @@ return [
     'geonames_username' => env('GEONAMES_USERNAME', 'SomeUsername'),
 
     /*
-    |--------------------------------------------------------------------------
-    | Fleetany Attributes API
-    |--------------------------------------------------------------------------
-    */
-
+     |--------------------------------------------------------------------------
+     | Fleetany Attributes API
+     |--------------------------------------------------------------------------
+     */
+    
     'attributes_api_url' => env('ATTRIBUTES_API_URL', null),
     'attributes_api_key' => env('ATTRIBUTES_API_KEY', null),
+    
+    /*
+     |--------------------------------------------------------------------------
+     | Fleetany Alerts API
+     |--------------------------------------------------------------------------
+     */
+    
+    'alerts_api_url' => env('ALERTS_API_URL', null),
+    'alerts_api_key' => env('ALERTS_API_KEY', null),
 
     /*
      |--------------------------------------------------------------------------
@@ -103,6 +112,7 @@ return [
     'tires_danger_pressure_percentage' => env('TIRES_DANGER_PRESSURE_PERCENTAGE', 10),
     'tires_warning_temperature' => env('TIRES_WARNING_TEMPERATURE', 60),
     'tires_danger_temperature' => env('TIRES_DANGER_TEMPERATURE', 80),
+    'tiresensor_max_elapsed_time_minutes' => env('TIRESENSOR_MAX_ELAPSED_TIME_MINUTES', 5),
 
     /*
     |--------------------------------------------------------------------------
@@ -186,6 +196,7 @@ return [
         Thinmy\CachedEloquentUser\AuthServiceProvider::class,
         Barryvdh\Debugbar\ServiceProvider::class,
         "Alientronics\FleetanyWebPages\FleetanyWebPagesServiceProvider",
+        "Alientronics\FleetanyWebReports\FleetanyWebReportsServiceProvider",
         "Alientronics\FleetanyWebGeofence\FleetanyWebGeofenceServiceProvider",
         "Alientronics\FleetanyWebDriver\FleetanyWebDriverServiceProvider",
         "Alientronics\FleetanyWebAttributes\FleetanyWebAttributesServiceProvider",

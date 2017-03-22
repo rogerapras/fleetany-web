@@ -8,13 +8,14 @@ use App\Entities\Vehicle;
 use Log;
 use Lang;
 use Prettus\Validator\Exceptions\ValidatorException;
-use Illuminate\Support\Facades\Auth;
 use App\Repositories\CompanyRepositoryEloquent;
 use App\Repositories\ModelRepositoryEloquent;
 use App\Repositories\PartRepositoryEloquent;
 use Alientronics\FleetanyWebAttributes\Repositories\AttributeRepositoryEloquent;
 use App\Entities\Contact;
 use App\Repositories\FleetRepositoryEloquent;
+use Alientronics\FleetanyWebReports\Controllers\ReportController;
+use App\Repositories\HelperRepository;
 
 class VehicleController extends Controller
 {
@@ -199,7 +200,7 @@ class VehicleController extends Controller
         }
     }
 
-    public function show($idVehicle)
+    public function show($idVehicle, $dateIni = null, $dateEnd = null)
     {
         $vehicle = $this->vehicleRepo->find($idVehicle);
         $this->helper->validateRecord($vehicle);
@@ -208,11 +209,30 @@ class VehicleController extends Controller
         $driverData = empty($localizationData->driver_id) ? "" :
                             Contact::find($localizationData->driver_id);
 
+        $fleetData['tireData'] = $this->getFleetSensorDatetimeData($fleetData['tireData']);
+       
+        if (class_exists('Alientronics\FleetanyWebReports\Controllers\ReportController')) {
+            $vehicleHistory = $this->vehicleHistory($fleetData, $dateIni, $dateEnd);
+            $tireSensorData = $vehicleHistory['tireSensorData'];
+            $dateIni = $vehicleHistory['dateIni'];
+            $timeIni = $vehicleHistory['timeIni'];
+            $timeEnd = $vehicleHistory['timeEnd'];
+        } else {
+            $tireSensorData = [];
+            $dateIni = "";
+            $timeIni = "";
+            $timeEnd = "";
+        }
+  
         return view("vehicle.show", compact(
             'vehicle',
             'fleetData',
             'localizationData',
-            'driverData'
+            'driverData',
+            'tireSensorData',
+            'dateIni',
+            'timeIni',
+            'timeEnd'
         ));
     }
     
@@ -223,5 +243,78 @@ class VehicleController extends Controller
         return view("vehicle.map.details", compact(
             'data'
         ));
+    }
+    
+    private function vehicleHistory($fleetData, $dateIni, $dateEnd)
+    {
+        $tireSensorData['positions'] = [];
+        $partsIds = [];
+        if (!empty($fleetData['tireData'])) {
+            foreach ($fleetData['tireData'] as $vehicleData) {
+                foreach ($vehicleData as $position => $tireData) {
+                    if (!empty($tireData->part_id)) {
+                        $tireSensorData['positions'][] = $position;
+                        $partsIds[] = $tireData->part_id;
+                    }
+                }
+            }
+        }
+        
+        asort($tireSensorData['positions']);
+        
+        if (empty($dateIni)) {
+            $dateIni = date("Y-m-d H:i:s");
+            $dateEnd = date('Y-m-d 23:59:59');
+        }
+        
+        $tireSensorData['data'] = $this->fleetRepo->getTireSensorHistoricalData($partsIds, $dateIni, $dateEnd);
+        $tireSensorData['columns'] = [];
+        
+        if (!empty($tireSensorData['positions'])) {
+            $tireSensorData = $this->fleetRepo->setColumnsChart($tireSensorData);
+        }
+        
+        $arrayReturn['timeIni'] = substr($dateIni, 11);
+        $arrayReturn['timeEnd'] = substr($dateEnd, 11);
+        $arrayReturn['dateIni'] = substr(HelperRepository::date($dateIni, 'app_locale'), 0, 10);
+        $arrayReturn['tireSensorData'] = $tireSensorData;
+        
+        return $arrayReturn;
+    }
+    
+    protected function getFleetSensorDatetimeData($fleetTireData)
+    {
+        if (!empty($fleetTireData)) {
+            foreach ($fleetTireData as $idVehicle => $tireData) {
+                $lastDatetimeData = $this->getLastDatetimeData($tireData);
+                if (is_array($fleetTireData[$idVehicle])) {
+                    $fleetTireData[$idVehicle]['isTireSensorOldData'] = HelperRepository::isOldDate(
+                        $lastDatetimeData,
+                        config('app.tiresensor_max_elapsed_time_minutes')
+                    );
+                    $fleetTireData[$idVehicle]['lastDatetimeData'] = HelperRepository::date(
+                        $lastDatetimeData,
+                        'app_locale'
+                    );
+                }
+            }
+        }
+        return $fleetTireData;
+    }
+    
+    private function getLastDatetimeData($tireData)
+    {
+        $lastData = "";
+        if (!empty($tireData)) {
+            foreach ($tireData as $position => $value) {
+                if (is_numeric($position) && !empty($value->created_at)) {
+                    $datetime = HelperRepository::date($value->created_at);
+                    if (empty($lastData) || $datetime > $lastData) {
+                        $lastData = $datetime;
+                    }
+                }
+            }
+        }
+        return $lastData;
     }
 }

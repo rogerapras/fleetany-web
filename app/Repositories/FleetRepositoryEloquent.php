@@ -5,42 +5,84 @@ namespace App\Repositories;
 use App\Entities\Vehicle;
 use Illuminate\Support\Facades\Auth;
 use App\Entities\Gps;
+use App\Entities\Part;
 use App\Entities\TireSensor;
 
 class FleetRepositoryEloquent extends VehicleRepositoryEloquent
 {
 
-    private function getFleetTireAndSensorData($updateDatetime = null, $vehicleId = null)
+    private function getFleetTireAndSensorParts(&$partsData, $vehicleId = null, $partsIds = null)
     {
-        $sensors = TireSensor::select('tire_sensor.*', 'parts.position', 'parts.vehicle_id')
-            ->join('parts', 'tire_sensor.part_id', '=', 'parts.id')
+        $partsQuery = Part::select('parts.id', 'parts.position', 'parts.vehicle_id')
             ->join('types', 'parts.part_type_id', '=', 'types.id')
             ->whereNotNull('parts.vehicle_id')
             ->where('parts.company_id', Auth::user()['company_id'])
             ->where('types.name', 'sensor');
+    
+        if (!empty($vehicleId)) {
+            $partsQuery = $partsQuery->where('parts.vehicle_id', $vehicleId);
+        }
+    
+        if (!empty($partsIds)) {
+            $partsQuery = $partsQuery->whereIn('parts.id', $partsIds);
+        }
+    
+        $partsResult = $partsQuery->get();
         
+        $parts = [];
+        $partsData = [];
+        if (count($partsResult) > 0) {
+            foreach ($partsResult as $part) {
+                $parts[] = $part->id;
+                $partsData[$part->id]['position'] = $part->position;
+                $partsData[$part->id]['vehicle_id'] = $part->vehicle_id;
+            }
+        }
+        
+        return $parts;
+    }
+    
+    private function getFleetTireAndSensorData($updateDatetime = null, $vehicleId = null)
+    {
+        
+        $parts = $this->getFleetTireAndSensorParts($partsData, $vehicleId);
+         
+        $sensorsIdsQuery = TireSensor::select(\DB::raw('max(id) as id'))
+            ->whereIn('part_id', $parts);
+            
         if (!empty($updateDatetime)) {
-            $sensors = $sensors->where('tire_sensor.created_at', '>', $updateDatetime);
+            $sensorsIdsQuery = $sensorsIdsQuery->where('tire_sensor.created_at', '>', $updateDatetime);
+        }
+        
+        $sensorsIdsQuery = $sensorsIdsQuery->groupBy('tire_sensor.part_id')
+            ->get();
+       
+        $sensorsIds = [];
+        if (count($sensorsIdsQuery) > 0) {
+            foreach ($sensorsIdsQuery as $sensorsIdQuery) {
+                $sensorsIds[] = $sensorsIdQuery->id;
+            }
         }
 
-        if (!empty($vehicleId)) {
-            $sensors = $sensors->where('parts.vehicle_id', $vehicleId);
-        }
-            
-        $sensors = $sensors->orderBy('tire_sensor.created_at', 'asc')
+        $sensors = TireSensor::select('tire_sensor.*')
+            ->whereIn('tire_sensor.id', $sensorsIds)
             ->get();
 
         $tireAndSensorData = [];
-        if (!empty($sensors)) {
-            $tiresData = $this->getTiresWarningAndDanger();
+        if (count($sensors) > 0) {
+            $tiresData = $this->getTiresWarningAndDanger($sensorsIds);
             foreach ($sensors as $sensor) {
                 $objTire = new \stdClass();
                 $objTire->temperature = HelperRepository::manageEmptyValue($sensor->temperature);
                 $objTire->pressure = HelperRepository::manageEmptyValue($sensor->pressure);
+                $objTire->part_id = HelperRepository::manageEmptyValue($sensor->part_id);
+                $objTire->position = HelperRepository::manageEmptyValue($sensor->position);
+                $objTire->created_at = HelperRepository::manageEmptyValue($sensor->created_at);
                 
                 $objTire = $this->setTiresColor($tiresData, $sensor, $objTire);
                 
-                $tireAndSensorData[$sensor->vehicle_id][$sensor->position] = $objTire;
+                $vehicle_id = $partsData[$sensor->part_id]['vehicle_id'];
+                $tireAndSensorData[$vehicle_id][$partsData[$sensor->part_id]['position']] = $objTire;
             }
         }
 
@@ -48,80 +90,11 @@ class FleetRepositoryEloquent extends VehicleRepositoryEloquent
         $objTire->temperature = "";
         $objTire->pressure = "";
         $objTire->color = "";
+        $objTire->created_at = "";
         $tireAndSensorData[0] = $objTire;
         
     
         return $tireAndSensorData;
-    }
-
-    private function setTiresColor($tiresData, $sensor, $objTire)
-    {
-        if (!empty($tiresData['parts'][$sensor->part_id])
-            && ($sensor->pressure > $tiresData['dangerMaxPressure']
-                || $sensor->pressure < $tiresData['dangerMinPressure']
-                || $sensor->temperature > (int)config('app.tires_danger_temperature'))
-            ) {
-                $objTire->color = "red";
-        } elseif (!empty($tiresData['parts'][$sensor->part_id])
-            && ($sensor->pressure > $tiresData['warningMaxPressure']
-                || $sensor->pressure < $tiresData['warningMinPressure']
-                || $sensor->temperature > (int)config('app.tires_warning_temperature'))
-            ) {
-                $objTire->color = "yellow";
-        } else {
-            $objTire->color = "green";
-        }
-        
-        return $objTire;
-    }
-    
-    private function getTiresWarningAndDanger()
-    {
-        
-
-//         $sensors = \DB::select('part_id', \DB::raw('AVG(temperature) as avg_temperature'))
-//             ->from(
-                
-//                 TireSensor::select('part_id', 'temperature')
-                
-//                 ) as 't'
-//             ->groupBy('part_id')
-//             ->get();
-
-        $sensorsReturn = [];
-
-        $warningPressure = ((int)config('app.tires_warning_pressure_percentage') *
-            (int)config('app.tires_ideal_pressure')) / 100;
-        
-        $sensorsReturn['warningMinPressure'] = (int)config('app.tires_ideal_pressure') - $warningPressure;
-        $sensorsReturn['warningMaxPressure'] = (int)config('app.tires_ideal_pressure') + $warningPressure;
-
-        $dangerPressure = ((int)config('app.tires_danger_pressure_percentage') *
-            (int)config('app.tires_ideal_pressure')) / 100;
-        
-        $sensorsReturn['dangerMinPressure'] = (int)config('app.tires_ideal_pressure') - $dangerPressure;
-        $sensorsReturn['dangerMaxPressure'] = (int)config('app.tires_ideal_pressure') + $dangerPressure;
-             
-        $sensors = \DB::select(\DB::raw('
-            select part_id, avg(temperature) as avg_temperature, avg(pressure) as avg_pressure
-            from (
-            
-                select part_id, temperature, pressure
-                from tire_sensor
-                where (
-                    select count(*) from tire_sensor as p
-                    where p.part_id = tire_sensor.part_id and p.created_at >= tire_sensor.created_at
-                    ) <= 3
-            ) as t
-            group by part_id'));
-        
-        if (!empty($sensors)) {
-            foreach ($sensors as $sensor) {
-                $sensorsReturn['parts'][$sensor->part_id] = $sensor;
-            }
-        }
-        
-        return $sensorsReturn;
     }
     
     private function getFleetGpsData($updateDatetime = null, $vehicleId = null)
@@ -164,6 +137,7 @@ class FleetRepositoryEloquent extends VehicleRepositoryEloquent
         $vehicles = $vehicles->get();
         $tireData = [];
         $modelMaps = [];
+        $gpsData = [];
         
         if (!empty($vehicles)) {
             $tires = PartRepositoryEloquent::getTiresVehicle();
@@ -203,5 +177,102 @@ class FleetRepositoryEloquent extends VehicleRepositoryEloquent
             'gps' => $this->getFleetGpsData($updateDatetime, $vehicleId),
             'tires' => $this->getFleetTireAndSensorData($updateDatetime, $vehicleId)
         ];
+    }
+    
+    public function getTireSensorHistoricalData($partsIds, $dateIni, $dateEnd)
+    {
+        
+        $this->getFleetTireAndSensorParts($partsData, null, $partsIds);
+        
+        $tireSensor = TireSensor::select('part_id', 'temperature', 'pressure', 'created_at')
+            ->whereIn('part_id', $partsIds);
+
+        if (!empty($dateIni) && $dateIni != '-') {
+            $tireSensor = $tireSensor->where('created_at', '>=', $dateIni);
+        }
+        
+        if (!empty($dateEnd) && $dateEnd != '-') {
+            $tireSensor = $tireSensor->where('created_at', '<=', $dateEnd);
+        }
+         
+        $tireSensor = $tireSensor->get();
+
+        $historicalDataPos = $this->setHistoricalDataPositions($partsData);
+        if (!empty($tireSensor)) {
+            foreach ($tireSensor as $data) {
+                $historicalDataPos[$partsData[$data->part_id]['position']][] = $data;
+            }
+        }
+
+        return $this->getHistoricalData($historicalDataPos);
+    }
+    
+    private function getHistoricalData($historicalDataPos)
+    {
+        $historicalData = [];
+        $historicalOrderData = [];
+        $positionOrder = 0;
+        $countPoints = 0;
+        foreach ($historicalDataPos as $historicalDataP) {
+            $positionOrder++;
+            foreach ($historicalDataP as $dataPos) {
+                $countPoints++;
+                $historicalData[$countPoints]['time'] = substr($dataPos->created_at, 11);
+                $historicalData[$countPoints][substr($dataPos->created_at, 11)] = "";
+                
+                for ($i = 1; $i < $positionOrder; $i++) {
+                    $historicalData[$countPoints][substr($dataPos->created_at, 11)] .= ", null, null";
+                }
+                $historicalData[$countPoints][substr($dataPos->created_at, 11)] .= ", " . $dataPos->temperature;
+                $historicalData[$countPoints][substr($dataPos->created_at, 11)] .= ", " . $dataPos->pressure;
+                for ($i = $positionOrder; $i < count($historicalDataPos); $i++) {
+                    $historicalData[$countPoints][substr($dataPos->created_at, 11)] .= ", null, null";
+                }
+                $historicalOrderData[substr($dataPos->created_at, 11)] = $historicalData[$countPoints];
+            }
+        }
+        asort($historicalOrderData);
+        return $historicalOrderData;
+    }
+    
+    private function setHistoricalDataPositions($partsData)
+    {
+        $historicalData = [];
+        $historicalDataTemp = [];
+        if (!empty($partsData)) {
+            foreach ($partsData as $part) {
+                $historicalDataTemp[] = $part['position'];
+            }
+            sort($historicalDataTemp);
+            foreach ($historicalDataTemp as $dataTemp) {
+                $historicalData[$dataTemp] = [];
+            }
+        }
+        return $historicalData;
+    }
+    
+    public function setColumnsChart($tireSensorData)
+    {
+        $chartElements[1] = "temperature";
+        $chartElements[2] = "pressure";
+        
+        $tireSensorData['columns'] = [];
+        foreach ($tireSensorData['positions'] as $key => $value) {
+            for ($index = 1; $index <= count($chartElements); $index++) {
+                $tireSensorData['columns'][$value][] = ($key * count($chartElements)) + $index;
+            }
+        }
+        
+        for ($index = count($tireSensorData['positions']) * count($chartElements); $index > 0; $index--) {
+            $elements = array_reverse($chartElements);
+            foreach ($elements as $element) {
+                if ($index % array_search($element, $chartElements) == 0) {
+                    $tireSensorData['columns'][$element][] = $index;
+                    break;
+                }
+            }
+        }
+        
+        return $tireSensorData;
     }
 }

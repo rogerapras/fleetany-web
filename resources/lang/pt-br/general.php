@@ -61,7 +61,9 @@ return [
     "country" => "Pa&iacute;s",
     "measure_units" => "Unidades de Medida",
     "api_token" => "API Token",
-    
+    "limit_temperature" => "Temperatura limite",
+    "ideal_pressure" => "Press&atilde;o ideal",
+    "delta_pressure" => "Delta de press&atilde;o",
 
     // Contact
     "Contact"   => "Contato",
@@ -105,16 +107,27 @@ return [
     "position"    => "Posi&ccedil;&atilde;o",
     "lifecycle"    => "Ciclo de vida",
     "linked_part"  => "Parte Vinculada",
+    "date_and_time"  => "Data e Hora",
+    "TireSensorDataNotFound" => "N&atilde;o h&aacute; dados para este per&iacute;odo e pneus selecionados.",
+    "SelectTireMessage" => "Por favor, selecione um pneu para que os dados sejam exibidos",
+    "LastData" => "&Uacute;ltimo dado",
+    "NoDataWasRecorded" => "Nenhum dado foi salvo at&eacute; o momento",
+    "AccessHistory" => "Acessar hist&oacute;rico",
     
     // Tire Sensor
     "SensorData"   => "Dados de Sensor",
     "temperature"   => "Temperatura",
     "pressure"    => "Press&atilde;o",
+    "pressure_googlechart"    => "Press\u00e3o",
     "battery"    => "Bateria",
     "latitude" => "Latitude",
     "longitude" => "Longitude",
     "speed" => "Velocidade",
     "sensorNumber" => "N&uacute;mero do Sensor",
+    "weight" => "Peso",
+    "altitude" => "Altitude",
+    "alarm" => "Alarme",
+    "availableSoon" => "Dispon&iacute;vel em breve",
     
     // Trip
     "Trip"   => "Viagem",
@@ -146,6 +159,8 @@ return [
     "Vehicle"   => "Ve&iacute;culo",
     "Vehicles"    => "Ve&iacute;culos",
     "VehicleData"    => "Dados do Ve&iacute;culo",
+    "Current"    => "Atual",
+    "History"    => "Hist&oacute;rico",
     "last_position" => "&Uacute;ltima posi&ccedil;&atilde;o",
     "newvehicle" => "Novo Ve&iacute;culo",
     "model_vehicle"=> "Modelo do ve&iacute;culo",
@@ -167,6 +182,10 @@ return [
     "VehicleAndLocalizationData" => "Dados do ve&iacute;culo e de localiza&ccedil;&atilde;o",
     "SelectedTireAndSensorData" => "Dados do pneu e sensor selecionado",
     "DriverData" => "Dados do motorista",
+    "InitialDate" => "Data Inicial",
+    "FinalDate" => "Data Final",
+    "InitialTime" => "Hor&aacute;rio Inicial",
+    "EndTime" => "Hor&aacute;rio Final",
     
     
     // user
@@ -178,6 +197,7 @@ return [
     "language" => "Idioma",
     "contact_id" => "Contato",
     "company_id" => "Empresa",
+    "user_exists" => "Us&aacute;rio j&aacute; existente",
     
     // Dialogs
     "createmodel" => "Criar novo modelo",

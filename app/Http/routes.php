@@ -105,6 +105,8 @@ Route::group(
     }
 );
 
+Route::get('vehicle/{id}/{dateini}/{dateend}', 'VehicleController@show');
+
 Route::get('trip/destroy/{id}', 'TripController@destroy');
 Route::get('part/destroy/{id}', 'PartController@destroy');
 Route::get('entry/destroy/{id}', 'EntryController@destroy');
@@ -116,6 +118,8 @@ Route::get('user/destroy/{id}', 'UserController@destroy');
 
 Route::get('getModels/{entityKey}/{idType?}', 'ModelController@getModelsByType');
 Route::get('getPartsByVehicle/{idVehicle}', 'PartController@getPartsByVehicle');
+
+Route::get('sensor/download/{idPart}', 'TireController@downloadData');
 
 Route::get('profile', 'UserController@showProfile');
 Route::put('updateProfile/{id}', 'UserController@updateProfile');

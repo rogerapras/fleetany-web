@@ -52,7 +52,7 @@
             @endpermission     
             @permission('view.part')
             <a class="@if (Request::is('part*')) mdl-color--grey mdl-color-text--white @endif mdl-navigation__link" href="{{URL::to('part')}}"><i class="material-icons" role="presentation">build</i>{{Lang::get('menu.Parts')}}</a>       
-            @endpermission  
+            @endpermission      
             @if (config('app.attributes_api_url') != null)   
               @permission('view.attribute')
               <a class="@if (Request::is('attribute*')) mdl-color--grey mdl-color-text--white @endif mdl-navigation__link" href="{{URL::to('attribute')}}"><i class="material-icons" role="presentation">build</i>{{Lang::get('menu.Attributes')}}</a>       
@@ -61,8 +61,35 @@
             @permission('view.role')
             <a class="@if (Request::is('role*')) mdl-color--grey mdl-color-text--white @endif mdl-navigation__link" href="{{URL::to('role')}}"><i class="material-icons" role="presentation">build</i>{{Lang::get('menu.Roles')}}</a>       
             @endpermission  
+            @if (class_exists('Alientronics\FleetanyWebReports\Controllers\ReportController'))
+            @permission('view.report')
+            <a id="submenu-reports-link" class="@if (Request::is('report*')) mdl-color--grey mdl-color-text--white @endif mdl-navigation__link" href="#"><i class="material-icons" role="presentation">assignment</i>{{Lang::get('menu.Reports')}}</a>       
+            <!-- sub menu reports -->
+            <nav id="submenu-reports" class="mdl-navigation" style="display:none">
+             <a href="{{URL::asset("reports/alerts/vehicles")}}" class="mdl-navigation__link"><i class="material-icons">keyboard_arrow_right</i>{{Lang::get('webreports.VehiclesAlerts')}}</a>
+             <a href="{{URL::asset("reports/alerts/tires")}}" class="mdl-navigation__link"><i class="material-icons">keyboard_arrow_right</i>{{Lang::get('webreports.TiresAlerts')}}</a>
+             <a href="{{URL::asset("reports/history/vehicles")}}" class="mdl-navigation__link"><i class="material-icons">keyboard_arrow_right</i>{{Lang::get('webreports.VehiclesHistory')}}</a>
+             <a href="{{URL::asset("reports/vehicles")}}" class="mdl-navigation__link"><i class="material-icons">keyboard_arrow_right</i>{{Lang::get('webreports.Vehicles')}}</a>
+             <a href="{{URL::asset("reports/tires")}}" class="mdl-navigation__link"><i class="material-icons">keyboard_arrow_right</i>{{Lang::get('webreports.Tires')}}</a>
+             <a href="{{URL::asset("reports/sensors")}}" class="mdl-navigation__link"><i class="material-icons">keyboard_arrow_right</i>{{Lang::get('webreports.Sensors')}}</a>
+             <a href="{{URL::asset("reports/vehicles/maintenance")}}" class="mdl-navigation__link"><i class="material-icons">keyboard_arrow_right</i>{{Lang::get('webreports.VehiclesMaintenance')}}</a>
+             <a href="{{URL::asset("reports/tires/maintenance")}}" class="mdl-navigation__link"><i class="material-icons">keyboard_arrow_right</i>{{Lang::get('webreports.TiresMaintenance')}}</a>
+            </nav>
+        	@endpermission  
+            @endif
         @else
         	<a class="mdl-navigation__link" href="{{URL::asset("auth/login")}}"><i class="material-icons" role="presentation">home</i>{{Lang::get('menu.Login')}}</a>
         @endif
     </nav>
+    
+    
+<script>
+   $(document).ready(function() {
+	 $('#submenu-reports-link').click(function(e) {
+	 	$('#submenu-reports').toggle();
+	 	$('.demo-drawer').animate({scrollTop: $(document).height()}, 'slow');
+	 });
+   });
+</script>
+
 </div>

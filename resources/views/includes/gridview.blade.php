@@ -27,10 +27,25 @@
           <div class="mdl-cell {{$sortFilter['class']}}">{{ $register->{$sortFilter['name']} }}</div>
           @endif
           @endforeach
-          
+            
+          @if(Request::is('reports*'))
+          <div class="mdl-cell mdl-cell--1-col">
+                @if(Request::is('reports/alerts/vehicles*'))
+                	{!!Form::buttonLink( url('/reports/alerts/vehicle/'.$register->id), 'primary' , 'search' , 'Visualizar' )!!}
+                @elseif(Request::is('reports/alerts/tires*'))
+                	{!!Form::buttonLink( url('/reports/alerts/tire/'.$register->id), 'primary' , 'search' , 'Visualizar' )!!}
+                @elseif(Request::is('reports/history/vehicles*'))
+                	{!!Form::buttonLink( route('vehicle.show', $register->id) , 'primary' , 'search' , 'Visualizar' )!!}
+                @elseif($gridview['pageActive'] == 'vehicle-alerts-types-report')
+                	{!!Form::buttonLink( url('/reports/alerts/vehicle/'.$entity_id.'/type/'.$register->id) , 'primary' , 'search' , 'Visualizar' )!!}
+                @elseif($gridview['pageActive'] == 'tire-alerts-types-report')
+                	{!!Form::buttonLink( url('/reports/alerts/tire/'.$entity_id.'/type/'.$register->id) , 'primary' , 'search' , 'Visualizar' )!!}
+                @endif
+          </div> 
+          @else              
           @permission('delete.'.$gridview['pageActive'].'|update.'.$gridview['pageActive'])
           <div class="mdl-cell mdl-cell--1-col">
-          		@if($gridview['pageActive'] == 'vehicle')
+                @if($gridview['pageActive'] == 'vehicle')
                 	{!!Form::buttonLink( route($gridview['pageActive'].'.show', $register->id) , 'primary' , 'search' , 'Visualizar' )!!}
                 @endif
                 @permission('update.'.$gridview['pageActive'])
@@ -42,10 +57,13 @@
                 @endpermission
           </div>
           @endpermission
+          @endif
         </div>
     </div>
     @endforeach
     
+    @if(isset($filters['pagination']))
 	@include('includes.pagination', ['paginator' => $registers->appends($filters['pagination'])]) 
+	@endif
 	
 </div>
